@@ -1,19 +1,52 @@
-import { useReducer } from "react";
+import { useReducer, useEffect } from "react";
 import GithubContext from "./githubContext";
+import { SEARCH_USERS, CLEAR_USERS, GET_USER } from "../types";
 import GithubReducer from "./githubReducer";
+import { getGithubUser, getGithubUsers } from "../../api/GithubAPI";
 const GithubState = (props) => {
   const initialState = {
     usersData: [],
     user: {},
   };
 
-  const [state, dispatch] = useReducer(GithubReducer, initialState);
+  const [state, dispatch] = useReducer(GithubReducer, initialState, () => {
+    const localState = localStorage.getItem("localState");
+    return localState ? JSON.parse(localState) : initialState;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("localState", JSON.stringify(state));
+  }, [state]);
+
+  const searchUsers = async (text) => {
+    const response = await getGithubUsers(text);
+    dispatch({
+      type: SEARCH_USERS,
+      payload: response.data.items,
+    });
+  };
+
+  const clearUsers = () => {
+    dispatch({
+      type: CLEAR_USERS,
+    });
+  };
+  const getUser = async (loginId) => {
+    const response = await getGithubUser(loginId);
+    dispatch({
+      type: GET_USER,
+      payload: response.data,
+    });
+  };
 
   return (
     <GithubContext.Provider
       value={{
         usersData: state.usersData,
         user: state.user,
+        searchUsers,
+        clearUsers,
+        getUser,
       }}
     >
       {props.children}
